@@ -1,6 +1,7 @@
 package com.reactive.demo.filter
 
 import com.reactive.demo.service.ReactiveService
+import org.slf4j.LoggerFactory
 import org.springframework.http.server.reactive.ServerHttpRequest
 import org.springframework.stereotype.Component
 import org.springframework.util.AntPathMatcher
@@ -24,23 +25,26 @@ class ReactiveWebFilter(private val reactiveService: ReactiveService) : WebFilte
             "/actuator*/**"
         )
         private val antPathMatcher: AntPathMatcher = AntPathMatcher()
+        private var logger = LoggerFactory.getLogger(ReactiveWebFilter::class.java)
+
     }
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         return if (!isExcludeUrl(exchange.request.path.value(), EXCLUDE_URL_DEFAULT)) {
-            reactiveService.getService().flatMap {
+            reactiveService.getService().flatMap { // Todo
                 exchange.request.body.map { requestDataBuffer ->
-                    val bytes = ByteArray(requestDataBuffer.readableByteCount())
-                    val byteBuffer: ByteBuffer  = ByteBuffer.wrap(bytes, 0, bytes.size)
+                    var body = ""
                     ByteArrayOutputStream().also { outputStream ->
+                        val bytes = ByteArray(requestDataBuffer.readableByteCount())
+                        val byteBuffer: ByteBuffer = ByteBuffer.wrap(bytes, 0, bytes.size)
                         requestDataBuffer.toByteBuffer(byteBuffer)
                         Channels.newChannel(outputStream).write(byteBuffer)
+                        body = StreamUtils.copyToString(outputStream, Charsets.UTF_8)
                         outputStream.close()
                     }
-                    String(byteBuffer.array())
+                    body
                 }.doOnNext {requestBody ->
-                    println(requestBody)
-                        // todo
+                    logger.info(requestBody)
                 }.then(chain.filter(exchange))
 
             }
