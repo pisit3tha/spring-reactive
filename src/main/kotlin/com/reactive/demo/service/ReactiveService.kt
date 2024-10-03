@@ -6,7 +6,7 @@ import reactor.core.publisher.Mono
 @Service
 class ReactiveService {
 
-    fun getService():Mono<Void>{
-        return Mono.empty()
+    fun getService():Mono<String>{
+        return Mono.just("test")
     }
 }

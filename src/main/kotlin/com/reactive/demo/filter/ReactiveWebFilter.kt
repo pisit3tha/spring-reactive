@@ -30,18 +30,17 @@ class ReactiveWebFilter(private val reactiveService: ReactiveService) : WebFilte
         return if (!isExcludeUrl(exchange.request.path.value(), EXCLUDE_URL_DEFAULT)) {
             reactiveService.getService().flatMap {
                 exchange.request.body.map { requestDataBuffer ->
-                    var body = ""
+                    val bytes = ByteArray(requestDataBuffer.readableByteCount())
+                    val byteBuffer: ByteBuffer  = ByteBuffer.wrap(bytes, 0, bytes.size)
                     ByteArrayOutputStream().also { outputStream ->
-                        val bytes = ByteArray(requestDataBuffer.readableByteCount())
-                        val byteBuffer: ByteBuffer = ByteBuffer.wrap(bytes, 0, bytes.size)
                         requestDataBuffer.toByteBuffer(byteBuffer)
                         Channels.newChannel(outputStream).write(byteBuffer)
-                        body = StreamUtils.copyToString(outputStream, Charsets.UTF_8)
                         outputStream.close()
                     }
-                    body
+                    String(byteBuffer.array())
                 }.doOnNext {requestBody ->
                     println(requestBody)
+                        // todo
                 }.then(chain.filter(exchange))
 
             }
