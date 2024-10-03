@@ -1,0 +1,6 @@
+logging:
+  level:
+    app: ERROR
+  pattern:
+    console: "%level|${spring.application.name} %message%n"
+
